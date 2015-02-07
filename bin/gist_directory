@@ -1,0 +1,30 @@
+#!/usr/bin/env ruby
+# -*- encoding: utf-8 -*-
+$LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
+
+require "gist_directory"
+
+def usage
+  puts <<-EOT
+#{$0} DIRECTORY [FILE]"
+
+PATH:
+Creates a Gist with a single file.
+
+FILE:
+
+By default, a Markdown file called basename([DIRECTORY]) + ".md" is created.
+Supply an optional filename to use instead of this default.
+  EOT
+end
+
+if ARGV.size == 0
+  usage
+  exit 0
+end
+
+path = ARGV[0]
+directory = File.basename(path)
+file = ARGV[1] || directory + ".md"
+
+GistDirectory.new(path: path).create(filename: file)
