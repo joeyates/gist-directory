@@ -6,9 +6,9 @@ require "gist_directory"
 
 def usage
   puts <<-EOT
-#{$0} DIRECTORY [FILE]"
+#{$0} create DIRECTORY [FILE]"
 
-PATH:
+DIRECTORY:
 Creates a Gist with a single file.
 
 FILE:
@@ -18,13 +18,16 @@ Supply an optional filename to use instead of this default.
   EOT
 end
 
-if ARGV.size == 0
+if ARGV.size < 2
   usage
   exit 0
 end
 
-path = ARGV[0]
+command = ARGV[0]
+path = ARGV[1]
 directory = File.basename(path)
-file = ARGV[1] || directory + ".md"
+file = ARGV[2] || directory + ".md"
+
+raise "Unknown command '#{command}'" nless command  == "create"
 
 GistDirectory.new(path: path).create(filename: file)
