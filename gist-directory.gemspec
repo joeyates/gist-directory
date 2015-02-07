@@ -21,6 +21,7 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency "git"
   gem.add_runtime_dependency "gist"
 
+  gem.add_development_dependency "rake"
   gem.add_development_dependency "rspec",  ">= 3.0.0"
   gem.add_development_dependency "pry-byebug"
 end
