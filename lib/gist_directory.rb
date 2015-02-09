@@ -4,7 +4,7 @@ require "git"
 class GistDirectory
   MAJOR    = 0
   MINOR    = 0
-  REVISION = 2
+  REVISION = 3
   VERSION  = [MAJOR, MINOR, REVISION].map(&:to_s).join('.')
 
   attr_reader :path
