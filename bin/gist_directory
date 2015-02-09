@@ -28,6 +28,6 @@ path = ARGV[1]
 directory = File.basename(path)
 file = ARGV[2] || directory + ".md"
 
-raise "Unknown command '#{command}'" nless command  == "create"
+raise "Unknown command '#{command}'" unless command  == "create"
 
 GistDirectory.new(path: path).create(filename: file)
