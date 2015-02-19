@@ -3,11 +3,11 @@ require "gist_directory"
 RSpec.describe GistDirectory do
   let(:path) { "/foo/bar" }
   let(:path_exists) { false }
-  let(:filename) { "baz.txt" }
+  let(:filename) { File.join(path, "baz.txt") }
   let(:gist_result) { {"id" => gist_hash} }
   let(:gist_hash) { "gist_sha1_hash" }
   let(:git) { double(Git) }
-  subject { described_class.new(path: path) }
+  subject { described_class.new(filename: filename) }
 
   before do
     allow(File).to receive(:directory?).and_call_original
@@ -20,9 +20,9 @@ RSpec.describe GistDirectory do
   describe "#create" do
     context "when the path doesn't exist" do
       it "creates a Gist, adding the file" do
-        subject.create(filename: filename)
+        subject.create
         expect(Gist).to have_received(:gist).with(
-          "Empty Gist", {filename: filename, public: true}
+          "Empty Gist", {filename: File.basename(filename), public: true}
         )
       end
     end
@@ -38,14 +38,13 @@ RSpec.describe GistDirectory do
       context "and contains a Git repo" do
         let(:dot_git_exists) { true }
         let(:remotes) { [double(Git::Remote, name: "origin", url: repo_url)] }
-        let(:filepath) { File.join(path, filename) }
         let(:file) { double(File, puts: nil) }
 
         before do
           allow(File).to receive(:open).and_call_original
-          allow(File).to receive(:open).with(filepath, "w").and_yield(file)
+          allow(File).to receive(:open).with(filename, "w").and_yield(file)
           allow(File).to receive(:exist?).and_call_original
-          allow(File).to receive(:exist?).with(filepath) { file_exists }
+          allow(File).to receive(:exist?).with(filename) { file_exists }
           allow(git).to receive(:remotes) { remotes }
           allow(git).to receive(:add)
           allow(git).to receive(:commit)
@@ -59,13 +58,13 @@ RSpec.describe GistDirectory do
             let(:file_exists) { false }
 
             it "creates the file" do
-              subject.create(filename: filename)
+              subject.create
               expect(file).to have_received(:puts)
             end
 
             it "adds the file" do
-              subject.create(filename: filename)
-              expect(git).to have_received(:add).with(filepath)
+              subject.create
+              expect(git).to have_received(:add).with(filename)
               expect(git).to have_received(:commit)
             end
           end
@@ -75,7 +74,7 @@ RSpec.describe GistDirectory do
 
             it "fails" do
               expect do
-                subject.create(filename: filename)
+                subject.create
               end.to raise_error(RuntimeError, /#{filename} already exists/)
             end
           end
@@ -86,7 +85,7 @@ RSpec.describe GistDirectory do
 
           it "fails" do
             expect do
-              subject.create(filename: filename)
+              subject.create
             end.to raise_error(RuntimeError, /not contain a Gist repository/)
           end
         end
@@ -97,7 +96,7 @@ RSpec.describe GistDirectory do
 
         it "fails" do
           expect do
-            subject.create(filename: filename)
+            subject.create
           end.to raise_error(RuntimeError, /not contain a Gist repository/)
         end
       end

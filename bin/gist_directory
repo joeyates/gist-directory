@@ -6,15 +6,17 @@ require "gist_directory"
 
 def usage
   puts <<-EOT
-#{$0} create DIRECTORY [FILE]"
+#{$0} create|edit|view [FILE_PATH]"
 
-DIRECTORY:
-Creates a Gist with a single file.
+create:
+* if the directory already contains a Gist, add the file
+* otherwise, creates a new Gist containing the file
 
-FILE:
+edit:
+* opens the file for editing
 
-By default, a Markdown file called basename([DIRECTORY]) + ".md" is created.
-Supply an optional filename to use instead of this default.
+view (Markdown only):
+* opens the converted file in your browser and watches for changes.
   EOT
 end
 
@@ -24,10 +26,17 @@ if ARGV.size < 2
 end
 
 command = ARGV[0]
-path = ARGV[1]
-directory = File.basename(path)
-file = ARGV[2] || directory + ".md"
+filename = ARGV[1]
 
-raise "Unknown command '#{command}'" unless command  == "create"
+gist = GistDirectory.new(filename: filename)
 
-GistDirectory.new(path: path).create(filename: file)
+case command
+when "create"
+  gist.create
+when "edit"
+  gist.edit
+when "view"
+  gist.view
+else
+  raise "Unknown command '#{command}'"
+end

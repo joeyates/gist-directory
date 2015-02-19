@@ -1,50 +1,111 @@
 require "gist"
 require "git"
 
-class GistDirectory
-  MAJOR    = 0
-  MINOR    = 0
-  REVISION = 3
-  VERSION  = [MAJOR, MINOR, REVISION].map(&:to_s).join('.')
+class GistFile
+  attr_reader :pathname
 
-  attr_reader :path
-  attr_reader :git
-
-  def initialize(path: nil)
-    @path = File.expand_path(path)
+  def initialize(pathname)
+    @pathname = File.expand_path(pathname)
   end
 
-  def create(filename: nil)
-    raise "No filename supplied" if filename.nil?
-
-    if path_exists?
-      fail_unless_gist_directory
-      fail_if_filename_exists filename
-      add_file_to_directory filename: filename
+  def create
+    if ! File.directory?(path)
+      create_gist
     else
-      do_gist_create filename: filename
+      create_file_if_missing
     end
+  end
+
+  def edit
+    create
+    raise "Please set the EDITOR environment variable" if ! ENV.include?("EDITOR")
+
+    exec "$SHELL $EDITOR '#{pathname}'"
+  end
+
+  def view
+    exec "$SHELL gulp-octodown-livereload '#{pathname}'"
   end
 
   private
 
-  def add_file_to_directory(filename: nil)
-    do_file_add filename: filename
-  end
-
-  def do_gist_create(filename: nil)
-    result = Gist.gist(content_for_empty_file, filename: filename, public: true)
+  def create_gist
+    result = Gist.gist(content_for_empty_file, filename: basename, public: true)
     gist_hash = result["id"]
 
     Git.clone("git@gist.github.com:#{gist_hash}", path)
   end
 
-  def do_file_add(filename: nil)
-    absolute = filepath(filename: filename)
-    File.open(absolute, "w") { |f| f.puts content_for_empty_file }
-    git.add(absolute)
-    git.commit("Added '#{filename}'")
+  def create_file_if_missing
+    raise "The file #{pathname} already exists" if exists?
+    create_empty_file pathname
+    add
+  end
+
+  def create_empty_file(pathname)
+    File.open(pathname, "w") { |f| f.puts content_for_empty_file }
+  end
+
+  def add
+    git = Git.open(basename)
+    git.add(pathname)
+    git.commit("Added '#{basename}'")
     git.push
+  end
+
+  def exists?
+    File.exist?(pathname)
+  end
+
+  def path
+    File.dirname(pathname)
+  end
+
+  def basename
+    File.basename(pathname)
+  end
+
+  def content_for_empty_file
+    "Empty Gist"
+  end
+end
+
+class GistDirectory
+  MAJOR    = 0
+  MINOR    = 1
+  REVISION = 0
+  VERSION  = [MAJOR, MINOR, REVISION].map(&:to_s).join('.')
+
+  attr_reader :filename
+
+  def initialize(filename: nil)
+    @filename = File.expand_path(filename)
+  end
+
+  def path
+    @path = File.dirname(filename)
+  end
+
+  def create
+    if path_exists?
+      fail_unless_gist_directory
+    end
+
+    file.create
+  end
+
+  def edit
+    file.edit
+  end
+
+  def view
+    file.view
+  end
+
+  private
+
+  def file
+    @file ||= GistFile.new(filename)
   end
 
   def fail_unless_gist_directory
@@ -52,35 +113,30 @@ class GistDirectory
       raise "#{path} exists and does not contain a Gist repository"
     end
   end
-  
-  def fail_if_filename_exists(filename)
-    absolute = filepath(filename: filename)
-    if File.exist?(absolute)
-      raise "A file called #{filename} already exists in #{path}"
-    end
+
+  def is_gist_directory?
+    return false if ! is_git_directory?
+    origin = origin_remote
+    return false if origin.nil?
+    is_gist_url? origin.url
   end
 
-  def git
-    @git ||= Git.open(path)
+  def is_git_directory?
+    git_path = File.join(path, ".git")
+    File.directory?(git_path)
   end
 
-  def filepath(filename: nil)
-    File.join(path, filename)
+  def origin_remote
+    git = Git.open(path)
+    git.remotes.select { |r| r.name == "origin" }[0]
+  end
+
+  def is_gist_url?(url)
+    m = %r(^git@gist\.github\.com:\w+$).match(url)
+    ! m.nil?
   end
 
   def path_exists?
     File.directory?(path)
-  end
-
-  def is_gist_directory?
-    return false unless File.directory?(File.join(path, ".git"))
-    origin = git.remotes.select { |r| r.name == "origin" }[0]
-    return false if origin.nil?
-    m = %r(^git@gist\.github\.com:\w+$).match(origin.url)
-    ! m.nil?
-  end
-
-  def content_for_empty_file
-    "Empty Gist"
   end
 end
