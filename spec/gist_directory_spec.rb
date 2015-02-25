@@ -14,7 +14,8 @@ RSpec.describe GistDirectory do
     allow(File).to receive(:directory?).with(path) { path_exists }
     allow(Gist).to receive(:gist) { gist_result }
     allow(Git).to receive(:clone)
-    allow(Git).to receive(:open) { git }
+    allow(Git).to receive(:open).and_raise("Unexpected path")
+    allow(Git).to receive(:open).with(path) { git }
   end
 
   describe "#create" do

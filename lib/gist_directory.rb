@@ -47,7 +47,7 @@ class GistFile
   end
 
   def add
-    git = Git.open(basename)
+    git = Git.open(path)
     git.add(pathname)
     git.commit("Added '#{basename}'")
     git.push
@@ -73,7 +73,7 @@ end
 class GistDirectory
   MAJOR    = 0
   MINOR    = 1
-  REVISION = 0
+  REVISION = 1
   VERSION  = [MAJOR, MINOR, REVISION].map(&:to_s).join('.')
 
   attr_reader :filename
