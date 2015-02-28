@@ -12,7 +12,12 @@ class GistFile
     if ! File.directory?(path)
       create_gist
     else
-      create_file_if_missing
+      if exists?
+        add_if_not_in_repo
+      else
+        create_empty_file pathname
+        add
+      end
     end
   end
 
@@ -36,18 +41,16 @@ class GistFile
     Git.clone("git@gist.github.com:#{gist_hash}", path)
   end
 
-  def create_file_if_missing
-    raise "The file #{pathname} already exists" if exists?
-    create_empty_file pathname
-    add
-  end
-
   def create_empty_file(pathname)
     File.open(pathname, "w") { |f| f.puts content_for_empty_file }
   end
 
+  def add_if_not_in_repo
+    files = git.ls_files.keys
+    add if ! files.include?(basename)
+  end
+
   def add
-    git = Git.open(path)
     git.add(pathname)
     git.commit("Added '#{basename}'")
     git.push
@@ -68,12 +71,16 @@ class GistFile
   def content_for_empty_file
     "Empty Gist"
   end
+
+  def git
+    @git ||= Git.open(path)
+  end
 end
 
 class GistDirectory
   MAJOR    = 0
   MINOR    = 1
-  REVISION = 1
+  REVISION = 2
   VERSION  = [MAJOR, MINOR, REVISION].map(&:to_s).join('.')
 
   attr_reader :filename
