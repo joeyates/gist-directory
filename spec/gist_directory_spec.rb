@@ -7,15 +7,33 @@ RSpec.describe GistDirectory do
   let(:gist_result) { {"id" => gist_hash} }
   let(:gist_hash) { "gist_sha1_hash" }
   let(:git) { double(Git) }
+  let(:access_token) { "access_token" }
+
   subject { described_class.new(filename: filename) }
 
   before do
     allow(File).to receive(:directory?).and_call_original
     allow(File).to receive(:directory?).with(path) { path_exists }
     allow(Gist).to receive(:gist) { gist_result }
+    allow(Gist::AuthTokenFile).to receive(:read) { access_token }
     allow(Git).to receive(:clone)
     allow(Git).to receive(:open).and_raise("Unexpected path")
     allow(Git).to receive(:open).with(path) { git }
+  end
+
+  describe "#fetch_all" do
+    let(:user_gists) { [user_gist] }
+    let(:user_gist) { {"git_pull_url" => gist_url } }
+    let(:gist_url) { "https://example.com" }
+
+    before do
+      allow(gist_lib).to receive(:list_all_gists) { user_gists }
+    end
+
+    it "fetches the user's gists" do
+      subject.fetch_all
+      expect(git).to have_received(:clone).with(gist_url)
+    end
   end
 
   describe "#create" do
