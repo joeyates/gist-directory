@@ -46,7 +46,7 @@ class GistFile
   end
 
   def add_if_not_in_repo
-    files = git.ls_files.keys
+    files = git.lib.ls_files.keys
     add if ! files.include?(basename)
   end
 
